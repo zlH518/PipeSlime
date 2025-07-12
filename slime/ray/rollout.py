@@ -1,6 +1,7 @@
 import multiprocessing
 import random
 import time
+import asyncio
 
 import ray
 from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
@@ -59,7 +60,7 @@ class RolloutRayActor(RayActor):
         self.infer_engine.continue_generation()
 
 
-def create_rollout_engines(args, pg):
+async def create_rollout_engines(args, pg):
     if args.debug_train_only:
         return []
 
@@ -145,13 +146,13 @@ def create_rollout_engines(args, pg):
     # TODO: don't ray.get here to overlap train actor init with rollout engine init.
     # somehow if we don't sync here, the --debug-rollout-only mode will crash.
     init_handles = [engine.init.remote(**ports) for engine, ports in zip(rollout_engines, addr_and_ports)]
-    ray.get(init_handles)
+    await asyncio.gather(*(init_handles))
 
     return rollout_engines
 
 
 class RolloutGroup:
-    def __init__(self, args, pg):
+    def __init__(self, args):
         self.args = args
         self.start_router()
         self.data_buffer = Buffer.options(
@@ -159,8 +160,9 @@ class RolloutGroup:
             num_gpus=0,
         ).remote(args)
 
-        self.all_rollout_engines = create_rollout_engines(args, pg)
-        nodes_per_engine = max(1, args.rollout_num_gpus_per_engine // 8)
+    async def init(self, pg):
+        self.all_rollout_engines = await create_rollout_engines(self.args, pg)
+        nodes_per_engine = max(1, self.args.rollout_num_gpus_per_engine // 8)
         # when doing multi-node serving, we will only send request to node-0 for each engine.
         self.rollout_engines = self.all_rollout_engines[::nodes_per_engine]
         self.rollout_engine_lock = Lock.options(

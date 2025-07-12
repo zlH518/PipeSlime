@@ -2,11 +2,12 @@ import os
 import ray
 import asyncio
 
-from slime.ray.placement_group import create_actor_group, create_placement_groups, create_rollout_group
+from slime.ray.placement_group import create_actor_group, create_rollout_group
 
 
 class Task:
-    def __init__(self, args, pg, actor_pg_reordered_bundle_indices):
+    def __init__(self, task_id, args, pg, actor_pg_reordered_bundle_indices):
+        self.task_id
         self.args = args
         # allocate the GPUs
         rollout_offset = args.actor_num_nodes * args.actor_num_gpus_per_node

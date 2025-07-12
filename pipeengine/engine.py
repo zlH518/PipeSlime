@@ -55,6 +55,7 @@ class PipeEngine:
         for task_id in range(self.num_tasks):
             self.task_group.append(
                 Task(
+                    task_id,
                     self.tasks_args[task_id],
                     self.pg,
                     self.actor_pg_reordered_bundle_indices
