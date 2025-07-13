@@ -953,6 +953,8 @@ def parse_args(add_custom_arguments=None):
     args.seq_length = 4096
     args.max_position_embeddings = args.seq_length
 
+    args.offload = True
+
     megatron_validate_args(args)
 
     # always use varlen

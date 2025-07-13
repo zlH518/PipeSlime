@@ -37,7 +37,7 @@ def sort_key(x):
 
 
 class PipeEngine:
-    async def __init__(self, tasks_args):
+    def __init__(self, tasks_args):
         self.args = tasks_args[0]
         self.tasks_args = tasks_args[1:]
         self.num_tasks = len(self.tasks_args)
@@ -47,10 +47,10 @@ class PipeEngine:
         # get all gpus info
         num_gpus = self.args.actor_num_nodes * self.args.actor_num_gpus_per_node + self.args.rollout_num_gpus
         self.pg, self.actor_pg_reordered_bundle_indices = self._create_placement_groups(num_gpus)
+        self.tasks_init()
 
-        self.task_group = await self._tasks_init()
 
-    async def _tasks_init(self):
+    def tasks_init(self):
         self.task_group = []
         for task_id in range(self.num_tasks):
             self.task_group.append(
@@ -61,8 +61,7 @@ class PipeEngine:
                     self.actor_pg_reordered_bundle_indices
                 )
             )
-        await asyncio.gather(*[task.init() for task in self.task_group])
-        # TODO: 
+        ray.get([task.init() for task in self.task_group])
             
 
 

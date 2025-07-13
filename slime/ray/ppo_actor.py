@@ -1,6 +1,7 @@
 import os
 import socket
 import time
+import asyncio
 from contextlib import nullcontext
 from typing import Dict
 
@@ -242,11 +243,11 @@ class TrainRayActor(RayActor):
 
         dist.barrier(group=megatron_utils.get_gloo_group())
 
-    def set_data_buffer(self, data_buffer):
+    async def set_data_buffer(self, data_buffer):
         self.data_buffer = data_buffer
         if getattr(self.args, "use_wandb", False) and getattr(self.args, "wandb_run_id", None):
             print(f"Updating buffer's wandb run_id to: {self.args.wandb_run_id}")
-            ray.get(self.data_buffer.update_wandb_run_id.remote(self.args.wandb_run_id))
+            await self.data_buffer.update_wandb_run_id.remote(self.args.wandb_run_id)
 
     def get_rollout_data(self, rollout_id):
         # Fetch data through ray on CPU, not sure if this will be performance bottleneck.
@@ -590,6 +591,7 @@ class RayTrainGroup:
         num_gpus_per_actor=1,
         resources: Dict[str, float] = None,
         num_resources_per_node: int = None,
+        debug_rollout_only: bool = False,
     ) -> None:
         self._num_nodes = num_nodes
         self._num_gpus_per_node = num_gpus_per_node
@@ -598,8 +600,11 @@ class RayTrainGroup:
         self._resources = resources
         self._num_resources_per_node = num_resources_per_node
 
+        self._debug_rollout_only = debug_rollout_only
+
         # Allocate the GPUs for actors w/o instantiating them
         self._allocate_gpus_for_actor(pg, num_gpus_per_actor)
+
 
     def _allocate_gpus_for_actor(self, pg, num_gpus_per_actor):
         world_size = self._num_nodes * self._num_gpus_per_node
