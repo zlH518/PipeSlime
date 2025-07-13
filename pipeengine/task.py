@@ -5,6 +5,7 @@ import asyncio
 from slime.ray.placement_group import create_actor_group, create_rollout_group
 
 
+@ray.remote
 class Task:
     def __init__(self, task_id, args, pg, actor_pg_reordered_bundle_indices):
         self.task_id = task_id

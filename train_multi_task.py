@@ -12,7 +12,7 @@ async def main():
     tasks_args.append(args)
     tasks_args = [copy.deepcopy(args) for _ in range(NUM_TASKS)]
     pipeEngine = PipeEngine(tasks_args)
-    pipeEngine.run()
+    await pipeEngine.run()
 
 
 if __name__ == "__main__":

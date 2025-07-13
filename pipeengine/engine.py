@@ -47,21 +47,16 @@ class PipeEngine:
         # get all gpus info
         num_gpus = self.args.actor_num_nodes * self.args.actor_num_gpus_per_node + self.args.rollout_num_gpus
         self.pg, self.actor_pg_reordered_bundle_indices = self._create_placement_groups(num_gpus)
-        self.tasks_init()
-
-
-    def tasks_init(self):
         self.task_group = []
         for task_id in range(self.num_tasks):
             self.task_group.append(
-                Task(
+                Task.remote(
                     task_id,
                     self.tasks_args[task_id],
                     self.pg,
                     self.actor_pg_reordered_bundle_indices
                 )
             )
-        ray.get([task.init() for task in self.task_group])
             
 
 
@@ -104,4 +99,4 @@ class PipeEngine:
     
 
     async def run(self):
-        await asyncio.gather(*[task.run() for task in self.task_group])
+        ray.get([task.run.remote() for task in self.task_group])
